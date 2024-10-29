@@ -2,13 +2,17 @@ import faiss
 import numpy as np
 import os
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForCausalLM 
-import faiss
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
+import transformers
+import torch
 # Initialize the Sentence Transformer model for creating embeddings
-model = SentenceTransformer('all-mpnet-base-v2',cache_folder=None)
-tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-40b", cache_dir=None)
-llm_model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-40b",cache_dir=None)
-os.environ["HF_HOME"] = "D:\New folder (2)"
+os.environ['HF_TOKEN'] = "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"
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = "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"
+
+model_id = "google/flan-t5-large"
+model = SentenceTransformer('all-mpnet-base-v2')
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+llm_model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
 
 # Load the saved FAISS index
 faiss_index = faiss.read_index('faiss_db')
@@ -18,7 +22,7 @@ metadata = np.load('metadata.npy', allow_pickle=True).tolist()
 chunks = np.load('chunks.npy', allow_pickle=True).tolist()
 
 # Function to query the vector store and get the most relevant chunks
-def query_vector_store(query, top_k=5):
+def query_vector_store(query, top_k=3):
     # Convert the query to a vector
     query_embedding = model.encode([query])
     
@@ -29,35 +33,49 @@ def query_vector_store(query, top_k=5):
     results = []
     for idx, dist in zip(indices[0], distances[0]):
         result = {
-
-            'content': chunks[idx]  # Show first 200 characters of the relevant chunk
+            'filename': metadata[idx]['filename'],
+            'chunk_number': metadata[idx]['chunk'],
+            'distance': dist,
+            'content': chunks[idx]  
         }
         results.append(result)
     
     return results
-def engage_with_llm(query, results):
     
-    chat_context = [
-        "You are a genAI expert. Engage in a conversation with the user based on the relevant content provided below.",
-        f"User query: {query}"
-    ]
+def engage_with_llm(query, results):
+ 
+    system_prompt = (
+        "You are an AI assistant specialized in sustainability reporting standards. "
+         "Transform the content into a brief, new response for the user's question."
+    )
+    relevant_content = "\n".join(result['content'] for result in results)
+    user_prompt = f"Utilize {relevant_content} and answer concisely for the user queries. **User Query:** {query}"
+                  
+                  
+    chat_context = f"{system_prompt}\n\n{user_prompt}"
+    # print("Chat Context:")
+    # print(chat_context)
+    generation_pipeline = transformers.pipeline(
+        "text2text-generation", model=llm_model, tokenizer=tokenizer,
+        model_kwargs={"torch_dtype": torch.bfloat16}, device_map="auto", trust_remote_code=True
+    )
+    output = generation_pipeline(chat_context, max_new_tokens=150,
+    do_sample=True,
+    top_k=10,
+    num_return_sequences=1,
+    eos_token_id=tokenizer.eos_token_id,)
+    print("Output")
+    return output[0]['generated_text']
+   
 
-    relevant_contents = [f"Relevant Content: {result['content']}" for result in results]
-    chat_context += relevant_contents
-
-    chat_context_str = "\n".join(chat_context)
-
-    input_ids = tokenizer(chat_context_str, return_tensors="pt", padding=True, truncation=True).input_ids
-    output = llm_model.generate(input_ids, max_length=5000, num_return_sequences=1)
-    return tokenizer.decode(output[0], skip_special_tokens=True)
 # Example query
-query = "Channels to reach these audience"
-results = query_vector_store(query, top_k=10)
+query = "What is CDL"
+results = query_vector_store(query, top_k=3)
 response = engage_with_llm(query, results)
-# Print the results
-for result in results:
-    print(f"Document: {result['filename']}, Chunk: {result['chunk_number']}, Distance: {result['distance']}")
-    print(f"Relevant Content: {result['content']}")
-    print("-" * 80)
+# for result in results:
+#     print("checking")
+#     print(f"Relevant Content: {result['content']}")
+#     print("-" * 80)
+
 print("Response:")
 print(response)
