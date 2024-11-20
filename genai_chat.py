@@ -11,7 +11,7 @@ from transformers import pipeline
 os.environ["HUGGINGFACE_HUB_TOKEN"] = "your_token_here"  
 
 # MongoDB configuration
-MONGO_URI = "mongodb+srv://db123:OPnRt1gy1QdIdqTZ@cluster0.lz0rt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "name_cluster"
 DB_NAME = "sample_data"
 COLLECTION_NAME = "check_data"
 
