@@ -2,7 +2,7 @@ import os
 from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
-mongo_uri = os.getenv('MONGO_URI',"mongodb+srv://db123:OPnRt1gy1QdIdqTZ@cluster0.lz0rt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") 
+mongo_uri = os.getenv('MONGO_URI',"mongo url") 
 client = MongoClient(mongo_uri)
 db = client['sample_data']  
 collection = db['check_data']  
