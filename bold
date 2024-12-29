@@ -1,0 +1,13 @@
+  if (line.includes('**')) {
+    const boldDiv = document.createElement('div');
+    boldDiv.style.fontWeight = 'bold';
+    boldDiv.textContent = line.replace(/\*\*/g, '');
+    container.appendChild(boldDiv);
+  } else {
+    const normalDiv = document.createElement('div');
+    normalDiv.textContent = line;
+    container.appendChild(normalDiv);
+  }
+
+  document.body.appendChild(container); // Append to the body or a specific parent element
+});
