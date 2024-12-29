@@ -1,0 +1,10 @@
+<div className="message">
+                          {!response ? '' : response.split('\n').map((line, index,lineIndex) => (
+                            <div key={index}>
+                             <div key={lineIndex}>
+                              {line.includes('**') ? (
+                                <div style={{ fontWeight: 'bold' }}>{line.replace(/\*\*/g, '')}</div>) : (<div>{line}</div>
+                              )}
+                            </div>
+                            </div>
+                          ))}
